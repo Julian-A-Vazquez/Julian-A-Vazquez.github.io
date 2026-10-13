@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Julian Vazquez · Applied Mathematics, Cryptography and Security</title>
+  <meta name="description" content="Julian Vazquez, Applied Mathematics student at UC San Diego focused on cryptography and security. U.S. citizen, available for internships from June 14, 2027.">
+  <meta name="author" content="Julian Vazquez">
+  <link rel="canonical" href="https://julian-a-vazquez.github.io/">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#fbfbfa" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111416" media="(prefers-color-scheme: dark)">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Julian Vazquez · Cryptography and Security">
+  <meta property="og:description" content="Applied Mathematics, UC San Diego. AES-128 from FIPS 197 in constant-time C, Cryptopals in C++. U.S. citizen, available for internships from June 14, 2027.">
+  <meta property="og:url" content="https://julian-a-vazquez.github.io/">
+  <!-- TODO (optional): add a 1200x630 preview image at assets/og-image.png and uncomment:
+  <meta property="og:image" content="https://julian-a-vazquez.github.io/assets/og-image.png"> -->
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/main.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <nav class="site-nav" aria-label="Sections">
+    <div class="wrap">
+      <a class="home" href="#top">jvazquez</a>
+      <ul>
+        <li class="nav-optional"><a href="#about">About</a></li>
+        <li><a href="#projects">Projects</a></li>
+        <li><a href="#education">Education</a></li>
+        <li class="nav-optional"><a href="#experience">Experience</a></li>
+        <li class="nav-optional"><a href="#skills">Skills</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main id="main">
+    <header class="hero wrap" id="top">
+      <!-- TODO (optional): add a headshot. Save it as assets/photo.jpg (square, about 400x400),
+           then add above the <h1>:
+           <img src="assets/photo.jpg" alt="Julian Vazquez" width="120" height="120" class="photo">
+           and a .photo rule in css/style.css (e.g. border-radius: 50%). -->
+      <h1>Julian Vazquez</h1>
+      <p class="tagline">Applied Mathematics, UC San Diego. Cryptography and security.</p>
+
+      <ul class="facts">
+        <li><strong>U.S. citizen</strong></li>
+        <li>Available for internships from <strong>June 14, 2027</strong></li>
+        <li>B.S. expected June 2028</li>
+      </ul>
+
+      <ul class="links">
+        <li><a class="button primary" href="assets/Vazquez_Julian_Resume.pdf" download type="application/pdf">Resume (PDF)</a></li>
+        <li><a class="button" href="mailto:julianvazquez3344@gmail.com">Email</a></li>
+        <li><a class="button" href="https://github.com/Julian-A-Vazquez">GitHub</a></li>
+        <li><a class="button" href="https://www.linkedin.com/in/julian-vazquez-45a583330">LinkedIn</a></li>
+      </ul>
+    </header>
+
+    <section id="about" class="wrap" aria-labelledby="about-h">
+      <h2 id="about-h">About</h2>
+      <p>
+        I'm an Applied Mathematics student at UC San Diego interested in the math underneath
+        cryptography: finite fields, number theory, and the lattice problems behind post-quantum
+        standards. I'm also interested in timing side channels and how to write code that runs in
+        constant time. I transferred from Glendale Community College in 2026.
+      </p>
+    </section>
+
+    <section id="projects" class="wrap" aria-labelledby="projects-h">
+      <h2 id="projects-h">Projects</h2>
+
+      <article class="card" aria-labelledby="p-aes">
+        <div class="card-head">
+          <h3 id="p-aes">AES-128 from NIST FIPS 197</h3>
+          <span class="tag progress">In progress</span>
+        </div>
+        <p class="stack">C · gcc · AddressSanitizer · UBSan</p>
+        <ul class="bullets">
+          <li>Derives the S-box from GF(2<sup>8</sup>) inverses and the affine transform instead of
+            copying the table; verified against FIPS 197 Figure 7.</li>
+          <li>Constant-time GF(2<sup>8</sup>) multiply and S-box: masks instead of branches, and the
+            inverse computed as x<sup>254</sup> instead of a table lookup. Checked equal to the
+            reference versions on every input (all 65,536 multiply pairs) and inspected in
+            gcc <code>-O0</code>/<code>-O2</code> assembly.</li>
+          <li>Test harness with AddressSanitizer and UBSan; builds with
+            <code>-Wall</code> <code>-Wextra</code> <code>-Wpedantic</code> <code>-Werror</code>.</li>
+          <li>In progress: key expansion, the round functions, the inverse cipher, and the FIPS 197
+            Appendix C test vectors.</li>
+        </ul>
+        <ul class="card-links">
+          <li><a href="aes.html">Write-up: constant-time S-box</a></li>
+          <li><a href="https://github.com/Julian-A-Vazquez/aes-128-fips197">Source on GitHub</a></li>
+        </ul>
+      </article>
+
+      <article class="card" aria-labelledby="p-cryptopals">
+        <div class="card-head">
+          <h3 id="p-cryptopals">Cryptopals cryptographic challenges</h3>
+          <span class="tag progress">In progress</span>
+        </div>
+        <p class="stack">C++</p>
+        <p>
+          Working through Set 1: hex and base64 encoding, fixed XOR, single-byte XOR key recovery
+          with English letter-frequency scoring, and finding the one encrypted line among 327
+          candidates.
+        </p>
+        <ul class="card-links">
+          <li><a href="https://github.com/Julian-A-Vazquez/cryptopals-cryptographic-challenges#readme">Current status (README)</a></li>
+          <li><a href="https://github.com/Julian-A-Vazquez/cryptopals-cryptographic-challenges">Source on GitHub</a></li>
+        </ul>
+      </article>
+
+      <article class="card" aria-labelledby="p-supply">
+        <div class="card-head">
+          <h3 id="p-supply">Supply chain data analysis</h3>
+        </div>
+        <p class="stack">Python · pandas · NumPy · Matplotlib · Seaborn · Plotly</p>
+        <ul class="bullets">
+          <li>Cleaned and analyzed a 180,000-row dataset: fixed a Latin-1 encoding issue, kept ZIP
+            codes as text, parsed dates explicitly, and left missing values empty so averages
+            weren't skewed.</li>
+          <li>Answered nine questions on delivery risk, category margin and sales trends.</li>
+        </ul>
+        <!-- TODO: no repository or notebook link was provided for this project. If one exists,
+             add it here in the same format as the other cards:
+             <ul class="card-links"><li><a href="https://github.com/Julian-A-Vazquez/REPO">Source on GitHub</a></li></ul>
+             and re-check that the bullets above match what the repo shows. -->
+      </article>
+    </section>
+
+    <section id="education" class="wrap" aria-labelledby="education-h">
+      <h2 id="education-h">Education</h2>
+
+      <div class="entry">
+        <div class="entry-head">
+          <h3>University of California, San Diego</h3>
+          <span class="date">Expected June 2028</span>
+        </div>
+        <p class="where">B.S. Applied Mathematics</p>
+        <dl class="courses">
+          <dt>Fall 2026</dt>
+          <dd>Introduction to Cryptography (MATH 187A), Mathematical Reasoning and Proof (MATH 109),
+            Introduction to Probability (MATH 180A), Introduction to Computer Science (CSE 11)</dd>
+          <dt>Planned</dt>
+          <dd>Modern Algebra I–II, Number Theory I–II, Mathematics of Modern Cryptography,
+            Introduction to Modern Cryptography (CSE 107), Algorithms (CSE 101),
+            Computer Security (CSE 127)</dd>
+        </dl>
+      </div>
+
+      <div class="entry">
+        <div class="entry-head">
+          <h3>Glendale Community College</h3>
+          <span class="date">2026</span>
+        </div>
+        <p class="where">A.S.-T Mathematics and A.S.-T Physics</p>
+        <dl class="courses">
+          <dt>Coursework</dt>
+          <dd>Survey of Abstract Algebra, Linear Algebra, Multivariable and Vector Calculus,
+            Honors Differential Equations, Introduction to Statistics, Programming in C/C++,
+            C++ and Advanced Topics, Physics 101–103</dd>
+        </dl>
+      </div>
+    </section>
+
+    <section id="experience" class="wrap" aria-labelledby="experience-h">
+      <h2 id="experience-h">Experience</h2>
+
+      <div class="entry">
+        <div class="entry-head">
+          <h3>Mathematics Instructor</h3>
+          <span class="date">Mar 2025 – Sep 2026</span>
+        </div>
+        <p class="where">Mathnasium, Burbank, CA</p>
+        <p>Taught 20–30 K-12 students a week in geometry, statistics, number sense and calculus.</p>
+      </div>
+
+      <div class="entry">
+        <div class="entry-head">
+          <h3>Co-Founder and Treasurer</h3>
+          <span class="date">Feb 2025 – Jun 2026</span>
+        </div>
+        <p class="where">Society of Hispanic Professional Engineers, Glendale CC chapter</p>
+        <p>One of three founding members. Wrote the proposals that secured state funding and kept
+          the chapter's books.</p>
+      </div>
+    </section>
+
+    <section id="skills" class="wrap" aria-labelledby="skills-h">
+      <h2 id="skills-h">Skills</h2>
+      <dl class="skills">
+        <dt>Languages</dt>
+        <dd>C, C++, Python (pandas, NumPy), SQL</dd>
+        <dt>Tools</dt>
+        <dd>Linux, Git, GCC toolchain, AddressSanitizer/UBSan</dd>
+        <dt>Mathematics</dt>
+        <dd>Abstract algebra, finite fields, linear algebra, probability and statistics</dd>
+      </dl>
+    </section>
+
+    <section id="certifications" class="wrap" aria-labelledby="certifications-h">
+      <h2 id="certifications-h">Certifications</h2>
+      <div class="entry">
+        <div class="entry-head">
+          <h3>Google Data Analytics Professional Certificate</h3>
+          <span class="date">August 2026</span>
+        </div>
+        <!-- TODO (optional): link the credential (Coursera/Credly verification URL) here. -->
+      </div>
+      <div class="entry">
+        <div class="entry-head">
+          <h3>CompTIA Security+ (SY0-701)</h3>
+          <span class="date">In progress</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="contact" class="wrap" aria-labelledby="contact-h">
+      <h2 id="contact-h">Contact</h2>
+      <p>
+        U.S. citizen, available for internships from June 14, 2027. The fastest way to reach me is
+        email.
+      </p>
+      <ul class="plain">
+        <li>Email: <a href="mailto:julianvazquez3344@gmail.com">julianvazquez3344@gmail.com</a>
+          <button type="button" class="button copy-btn" data-copy="julianvazquez3344@gmail.com" hidden>Copy</button>
+          <span class="copy-status" data-copy-status aria-live="polite"></span></li>
+        <li>LinkedIn: <a href="https://www.linkedin.com/in/julian-vazquez-45a583330">linkedin.com/in/julian-vazquez-45a583330</a></li>
+        <li>GitHub: <a href="https://github.com/Julian-A-Vazquez">github.com/Julian-A-Vazquez</a></li>
+        <li>Resume: <a href="assets/Vazquez_Julian_Resume.pdf" download type="application/pdf">Vazquez_Julian_Resume.pdf</a></li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>Julian Vazquez · Last updated October 2026</p>
+      <p>Plain HTML and CSS. No trackers, no analytics, no cookies.
+        <a href="https://github.com/Julian-A-Vazquez/Julian-A-Vazquez.github.io">Site source</a></p>
+    </div>
+  </footer>
+</body>
+</html>

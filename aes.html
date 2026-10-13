@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AES-128 from FIPS 197: a constant-time S-box · Julian Vazquez</title>
+  <meta name="description" content="How an AES-128 implementation in C derives the S-box from GF(2^8) arithmetic and computes it in constant time, with masks instead of branches and x^254 instead of a table lookup.">
+  <meta name="author" content="Julian Vazquez">
+  <link rel="canonical" href="https://julian-a-vazquez.github.io/aes.html">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#fbfbfa" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111416" media="(prefers-color-scheme: dark)">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="AES-128 from FIPS 197: a constant-time S-box">
+  <meta property="og:description" content="Deriving the AES S-box from GF(2^8) and computing it without secret-dependent branches or table lookups.">
+  <meta property="og:url" content="https://julian-a-vazquez.github.io/aes.html">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <nav class="site-nav" aria-label="Site">
+    <div class="wrap">
+      <a class="home" href="index.html">jvazquez</a>
+      <ul>
+        <li><a href="index.html#projects">Projects</a></li>
+        <li><a href="https://github.com/Julian-A-Vazquez/aes-128-fips197">Repo</a></li>
+        <li><a href="index.html#contact">Contact</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main id="main">
+    <header class="page-head wrap">
+      <p class="breadcrumb"><a href="index.html#projects">&larr; Projects</a></p>
+      <h1>AES-128 from FIPS 197</h1>
+      <p class="lede">
+        An AES-128 implementation in C, written from the NIST standard. The S-box is derived
+        from arithmetic in GF(2<sup>8</sup>) instead of being copied as a table, and the field
+        multiply and S-box run in constant time. The cipher itself is still in progress; this page
+        covers what is done and how it was checked.
+      </p>
+      <p class="stack">C · gcc · AddressSanitizer · UBSan ·
+        <a href="https://github.com/Julian-A-Vazquez/aes-128-fips197">github.com/Julian-A-Vazquez/aes-128-fips197</a></p>
+    </header>
+
+    <section class="wrap" id="status" aria-labelledby="status-h">
+      <h2 id="status-h">Status</h2>
+      <table class="status">
+        <caption class="visually-hidden">Implementation status by component</caption>
+        <thead>
+          <tr><th scope="col">State</th><th scope="col">Component</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="done">Done</td><td>GF(2<sup>8</sup>) multiplication and multiplicative inverse</td></tr>
+          <tr><td class="done">Done</td><td>S-box derived from inverses and the affine transform, plus the inverse S-box; verified against FIPS 197 Figure 7</td></tr>
+          <tr><td class="done">Done</td><td>Constant-time <code>xtime</code>, <code>gmul</code>, S-box and inverse S-box, checked equal to the reference versions on every input</td></tr>
+          <tr><td class="done">Done</td><td>Test harness under AddressSanitizer and UBSan, built with <code>-Wall</code> <code>-Wextra</code> <code>-Wpedantic</code> <code>-Werror</code>; assembly inspected at gcc <code>-O0</code> and <code>-O2</code></td></tr>
+          <tr><td class="todo-state">In progress</td><td>Key expansion</td></tr>
+          <tr><td class="todo-state">In progress</td><td>Round functions: SubBytes, ShiftRows, MixColumns, AddRoundKey</td></tr>
+          <tr><td class="todo-state">In progress</td><td>Inverse cipher</td></tr>
+          <tr><td class="todo-state">In progress</td><td>FIPS 197 Appendix C test vectors</td></tr>
+          <tr><td class="todo-state">Not yet</td><td>Constant-time verification of the full cipher (the S-box layer has been checked in assembly; no statistical timing test such as dudect has been run)</td></tr>
+        </tbody>
+      </table>
+
+      <nav class="toc" aria-label="On this page">
+        On this page
+        <ol>
+          <li><a href="#field">Arithmetic in GF(2<sup>8</sup>)</a></li>
+          <li><a href="#leak">Why table lookups leak timing</a></li>
+          <li><a href="#masks">Replacing branches with masks</a></li>
+          <li><a href="#inverse">The inverse without a table: x<sup>254</sup></a></li>
+          <li><a href="#checks">How it was checked</a></li>
+          <li><a href="#next">What's next</a></li>
+        </ol>
+      </nav>
+      <p class="muted">
+        Code below is from <a href="https://github.com/Julian-A-Vazquez/aes-128-fips197/blob/84e652a14abcfbab935558d91217d492e9715f0d/src/aes.c"><code>src/aes.c</code></a>
+        at commit <code>84e652a</code>, with whitespace normalized.
+      </p>
+    </section>
+
+    <section class="wrap" id="field" aria-labelledby="field-h">
+      <h2 id="field-h">Arithmetic in GF(2<sup>8</sup>)</h2>
+      <p>
+        AES treats each byte as a polynomial over GF(2) of degree below 8, reduced modulo the AES
+        polynomial x<sup>8</sup> + x<sup>4</sup> + x<sup>3</sup> + x + 1 (<code>0x11b</code>).
+        Addition is XOR. Multiplying by x, called <code>xtime</code>, is a left shift; if the high bit
+        was set before the shift, the result is reduced by XORing <code>0x1b</code>. A general product
+        a&nbsp;&middot;&nbsp;b is the XOR of a&nbsp;&middot;&nbsp;x<sup>i</sup> over the bits
+        b<sub>i</sub> that are set, so <code>gmul</code> is eight rounds of "conditionally add a, then
+        double a".
+      </p>
+      <p>
+        The S-box is defined by that field: take the multiplicative inverse of the byte (with 0
+        mapped to 0), then apply a fixed affine transform over GF(2). Instead of hardcoding the
+        256-byte table, the code computes it:
+      </p>
+      <pre><code>static uint8_t affine_transform(uint8_t b){
+    return (uint8_t) (b ^ rotl8(b, 1) ^ rotl8(b, 2)
+    ^ rotl8(b, 3) ^ rotl8(b, 4) ^ 0x63);
+}</code></pre>
+      <p>
+        The derived table matches FIPS 197 Figure 7. The first row, which the tests check
+        byte for byte:
+      </p>
+      <pre><code>63 7c 77 7b f2 6b 6f c5 30 01 67 2b fe d7 ab 76</code></pre>
+    </section>
+
+    <section class="wrap" id="leak" aria-labelledby="leak-h">
+      <h2 id="leak-h">Why table lookups leak timing</h2>
+      <p>
+        The usual way to implement SubBytes is <code>sbox[b]</code>. That is a memory load whose
+        <em>address</em> depends on <code>b</code>, and in AES <code>b</code> depends on the key: in
+        the first round the S-box input is a plaintext byte XORed with a key byte.
+      </p>
+      <p>
+        Memory is cached in lines, commonly 64 bytes, so a 256-byte table spans four lines. A load
+        from a line that is already cached is fast; one that is not is slow. Which lines an
+        encryption touches, and so how long it takes, therefore depends on the key. An attacker who
+        can time many encryptions of known plaintexts, or who shares a cache with the victim and
+        probes which lines were evicted, can work back to key bits. Bernstein (2005) recovered a
+        full AES key this way from the timing of a server using table-based AES.
+      </p>
+      <p>
+        Branches leak the same way. <code>if (b &amp; 0x80)</code> runs a different instruction
+        sequence depending on a secret bit, which changes the running time and the state of the
+        branch predictor.
+      </p>
+      <p>
+        So the rule for the code the cipher calls is: <strong>no branch and no memory address may
+        depend on secret data</strong>. Loop counts are fine as long as they are fixed.
+      </p>
+    </section>
+
+    <section class="wrap" id="masks" aria-labelledby="masks-h">
+      <h2 id="masks-h">Replacing branches with masks</h2>
+      <p>The reference <code>xtime</code> uses a conditional:</p>
+      <pre><code>uint8_t refxtime(uint8_t b){
+    uint8_t shifted = (uint8_t)(b &lt;&lt; 1);
+    uint8_t reduced = (uint8_t)((b &amp; 0x80) ? 0x1b : 0x00);
+    return (uint8_t)(shifted ^ reduced);
+}</code></pre>
+      <p>The constant-time version builds a mask from the high bit instead:</p>
+      <pre><code>uint8_t xtime(uint8_t b){
+    uint8_t shifted = (uint8_t)(b &lt;&lt; 1);
+    uint8_t reduced = (uint8_t)((-(b &gt;&gt; 7 &amp; 1)));
+    uint8_t masked = (uint8_t)((reduced &amp; 0x1b));
+    return (uint8_t)(shifted ^ masked);
+}</code></pre>
+      <p>
+        <code>b &gt;&gt; 7 &amp; 1</code> is 0 or 1. In two's complement, negating 1 gives all
+        ones, so truncated to a byte <code>-(1)</code> is <code>0xFF</code> and <code>-(0)</code> is
+        <code>0x00</code>. ANDing that mask with <code>0x1b</code> either keeps the reduction
+        constant or zeroes it, and both cases execute the same instructions.
+      </p>
+      <p>gcc at <code>-O2</code> compiles it to straight-line code with no jumps:</p>
+      <figure>
+        <pre><code>xtime:
+    movl    %edi, %eax
+    addl    %edi, %edi      # b &lt;&lt; 1
+    sarb    $7, %al         # smear the high bit: 0xFF or 0x00
+    andl    $27, %eax       # &amp; 0x1b
+    xorl    %edi, %eax
+    ret</code></pre>
+        <figcaption>x86-64 output of <code>gcc -std=c17 -O2 -S src/aes.c</code> (the
+          <code>make asm</code> target), with CFI directives and <code>endbr64</code> removed
+          and comments added.</figcaption>
+      </figure>
+      <p><code>gmul</code> uses the same trick for "add a if this bit of b is set":</p>
+      <pre><code>uint8_t gmul(uint8_t a, uint8_t b){
+    int i;
+    uint8_t result = 0x00;
+    for (i = 0; i &lt; 8; i++){
+        uint8_t mask =(-(b &amp; 1));
+        result ^= (a &amp; mask);
+        b &gt;&gt;= 1;
+        a = xtime(a);
+    }
+    return result;
+}</code></pre>
+      <p>
+        The loop always runs eight times, so its only branch is the counter, which does not depend
+        on <code>a</code> or <code>b</code>.
+      </p>
+    </section>
+
+    <section class="wrap" id="inverse" aria-labelledby="inverse-h">
+      <h2 id="inverse-h">The inverse without a table: x<sup>254</sup></h2>
+      <p>
+        Masks remove the branches, but the S-box still needs a multiplicative inverse, and a lookup
+        into an inverse table would put a secret-dependent address back. The field structure gives a
+        way around it. The nonzero elements of GF(2<sup>8</sup>) form a group of order 255, so
+        b<sup>255</sup> = 1 for every nonzero b, and therefore
+        b<sup>254</sup> = b<sup>&minus;1</sup>. For b = 0, 0<sup>254</sup> = 0, which is exactly the
+        convention AES uses, so zero needs no special case (a special case would itself be a branch).
+      </p>
+      <pre><code>static uint8_t compb254(uint8_t b){
+    int i;
+    const uint8_t b1 = b; // OK: the original b, copied once.
+    for(i = 0; i&lt;253; i++){
+        b = gmul(b, b1); // OK: exponent goes up by 1 each pass, b^1 -&gt; b^254.
+    }
+    return b;
+}
+
+static uint8_t ntablesbox(uint8_t b){
+    uint8_t b254 = compb254(b);
+    uint8_t affine = affine_transform(b254);
+    return affine;
+}</code></pre>
+      <p>
+        Every input takes the same 253 multiplications, each a fixed eight-iteration loop, followed by
+        the affine transform. The inverse S-box runs the steps backwards: undo the affine transform,
+        then raise to the 254th power.
+      </p>
+      <pre><code>static uint8_t invaffine(uint8_t x){
+    x = rotl8(x,1) ^ rotl8(x,3) ^ rotl8(x,6) ^ 0x05;
+    return x;
+}
+static uint8_t invsbox(uint8_t b){
+    uint8_t unaff = invaffine(b);
+    uint8_t inverse = compb254(unaff);
+    return inverse;
+}</code></pre>
+      <p>
+        The cost is speed. A table lookup is a single load; this is hundreds of field
+        multiplications per byte. The straight loop is the simplest constant-time route to
+        b<sup>254</sup>, not the fastest; square-and-multiply would reach it in far fewer
+        multiplications.
+      </p>
+      <p>
+        The original branching and table-based versions (<code>refxtime</code>, <code>refgmul</code>,
+        <code>refsub_byte</code>, <code>refinv_sub_byte</code>) are kept in the file only as the
+        known-good answers the tests compare against.
+      </p>
+    </section>
+
+    <section class="wrap" id="checks" aria-labelledby="checks-h">
+      <h2 id="checks-h">How it was checked</h2>
+      <p>
+        <strong>Exhaustive comparison with the reference.</strong> A byte-sized domain is small
+        enough to test completely. The constant-time functions are compared with the reference
+        versions on all 256 inputs, and <code>gmul</code> on all 65,536 input pairs
+        (<a href="https://github.com/Julian-A-Vazquez/aes-128-fips197/blob/84e652a14abcfbab935558d91217d492e9715f0d/tests/test_aes.c"><code>tests/test_aes.c</code></a>):
+      </p>
+      <figure>
+        <pre><code>for (int a = 0; a &lt; 256; a++) {
+    CHECK(xtime((uint8_t)a) == refxtime((uint8_t)a), "xtime(%02x) != refxtime", a);
+    CHECK(sub_byte((uint8_t)a) == refsub_byte((uint8_t)a), ...);
+    CHECK(inv_sub_byte((uint8_t)a) == refinv_sub_byte((uint8_t)a), ...);
+    for (int b = 0; b &lt; 256; b++)
+        CHECK(gmul((uint8_t)a, (uint8_t)b) == refgmul((uint8_t)a, (uint8_t)b), "gmul(%02x,%02x) != refgmul", a, b);
+}</code></pre>
+        <figcaption>Two long format strings shortened to <code>...</code>.</figcaption>
+      </figure>
+      <p>
+        <strong>Known answers from the standard.</strong> The tests also check the FIPS 197
+        multiplication and <code>xtime</code> examples (for instance
+        <code>gmul(0x57, 0x83) == 0xc1</code>), row 0 of Figure 7, <code>sbox[0x53] == 0xed</code>,
+        that the S-box is a bijection, and that the inverse S-box undoes it on every byte.
+      </p>
+      <p>
+        <strong>Sanitizers and strict warnings.</strong> <code>make test</code> builds the harness
+        with:
+      </p>
+      <pre><code>CFLAGS = -std=c17 -O1 -Wall -Wextra -Wpedantic -Werror
+SANITIZE = -fsanitize=address,undefined</code></pre>
+      <p>
+        <strong>Reading the assembly.</strong> A C compiler is free to turn mask arithmetic back
+        into a branch, so the source alone proves nothing. The generated assembly was inspected at
+        gcc <code>-O0</code> and <code>-O2</code>: the only branches left in these functions are
+        the fixed loop counters, and the only indexed loads are in the table-building and reference
+        code used by the tests.
+      </p>
+      <p>
+        <strong>Limits.</strong> Inspecting one compiler's output at two optimization levels is
+        evidence for that build, not a guarantee for every compiler or CPU. A statistical timing
+        test has not been run yet, and the constant-time property has only been checked for the
+        field arithmetic and S-box layer, not a full cipher.
+      </p>
+    </section>
+
+    <section class="wrap" id="next" aria-labelledby="next-h">
+      <h2 id="next-h">What's next</h2>
+      <ul class="bullets">
+        <li>Key expansion</li>
+        <li>The round functions: SubBytes, ShiftRows, MixColumns and AddRoundKey</li>
+        <li>The inverse cipher</li>
+        <li>Verification against the FIPS 197 Appendix C test vectors</li>
+      </ul>
+      <p>
+        Current status is tracked in the
+        <a href="https://github.com/Julian-A-Vazquez/aes-128-fips197#readme">repository README</a>.
+      </p>
+    </section>
+
+    <section class="wrap" id="references" aria-labelledby="references-h">
+      <h2 id="references-h">References</h2>
+      <ul class="bullets">
+        <li>NIST, <a href="https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197-upd1.pdf">FIPS 197:
+          Advanced Encryption Standard (AES)</a>, updated 2023.</li>
+        <li>D. J. Bernstein, <a href="https://cr.yp.to/antiforgery/cachetiming-20050414.pdf">Cache-timing
+          attacks on AES</a>, 2005.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p><a href="index.html">Julian Vazquez</a> · <a href="mailto:julianvazquez3344@gmail.com">julianvazquez3344@gmail.com</a></p>
+      <p>Plain HTML and CSS. No trackers, no analytics, no cookies.</p>
+    </div>
+  </footer>
+</body>
+</html>
