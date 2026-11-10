@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AES-128 from FIPS 197: a constant-time S-box · Julian Vazquez</title>
-  <meta name="description" content="How an AES-128 implementation in C derives the S-box from GF(2^8) arithmetic and computes it in constant time, with masks instead of branches and x^254 instead of a table lookup.">
+  <title>AES from FIPS 197: a constant-time S-box · Julian Vazquez</title>
+  <meta name="description" content="How an AES implementation in C derives the S-box from GF(2^8) arithmetic and computes it in constant time, with masks instead of branches and x^254 instead of a table lookup.">
   <meta name="author" content="Julian Vazquez">
   <link rel="canonical" href="https://julian-a-vazquez.github.io/aes.html">
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#fbfbfa" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#111416" media="(prefers-color-scheme: dark)">
   <meta property="og:type" content="article">
-  <meta property="og:title" content="AES-128 from FIPS 197: a constant-time S-box">
+  <meta property="og:title" content="AES from FIPS 197: a constant-time S-box">
   <meta property="og:description" content="Deriving the AES S-box from GF(2^8) and computing it without secret-dependent branches or table lookups.">
   <meta property="og:url" content="https://julian-a-vazquez.github.io/aes.html">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
@@ -34,12 +34,12 @@
   <main id="main">
     <header class="page-head wrap">
       <p class="breadcrumb"><a href="index.html#projects">&larr; Projects</a></p>
-      <h1>AES-128 from FIPS 197</h1>
+      <h1>AES from FIPS 197</h1>
       <p class="lede">
-        An AES-128 implementation in C, written from the NIST standard. The S-box is derived
-        from arithmetic in GF(2<sup>8</sup>) instead of being copied as a table, and the field
-        multiply and S-box run in constant time. The cipher itself is still in progress; this page
-        covers what is done and how it was checked.
+        An AES implementation in C for 128-, 192- and 256-bit keys, written from the NIST standard.
+        The S-box is derived from arithmetic in GF(2<sup>8</sup>) instead of being copied as a table,
+        and the field multiply and S-box run in constant time. The full cipher and inverse cipher match
+        every example in FIPS 197; this page covers the constant-time S-box and how it was checked.
       </p>
       <p class="stack">C · gcc · AddressSanitizer · UBSan ·
         <a href="https://github.com/Julian-A-Vazquez/aes-128-fips197">github.com/Julian-A-Vazquez/aes-128-fips197</a></p>
@@ -57,11 +57,11 @@
           <tr><td class="done">Done</td><td>S-box derived from inverses and the affine transform, plus the inverse S-box; verified against FIPS 197 Figure 7</td></tr>
           <tr><td class="done">Done</td><td>Constant-time <code>xtime</code>, <code>gmul</code>, S-box and inverse S-box, checked equal to the reference versions on every input</td></tr>
           <tr><td class="done">Done</td><td>Test harness under AddressSanitizer and UBSan, built with <code>-Wall</code> <code>-Wextra</code> <code>-Wpedantic</code> <code>-Werror</code>; assembly inspected at gcc <code>-O0</code> and <code>-O2</code></td></tr>
-          <tr><td class="todo-state">In progress</td><td>Key expansion</td></tr>
-          <tr><td class="todo-state">In progress</td><td>Round functions: SubBytes, ShiftRows, MixColumns, AddRoundKey</td></tr>
-          <tr><td class="todo-state">In progress</td><td>Inverse cipher</td></tr>
-          <tr><td class="todo-state">In progress</td><td>FIPS 197 Appendix C test vectors</td></tr>
-          <tr><td class="todo-state">Not yet</td><td>Constant-time verification of the full cipher (the S-box layer has been checked in assembly; no statistical timing test such as dudect has been run)</td></tr>
+          <tr><td class="done">Done</td><td>Key expansion for 128-, 192- and 256-bit keys, checked against FIPS 197 Appendix A</td></tr>
+          <tr><td class="done">Done</td><td>Round functions: SubBytes, ShiftRows, MixColumns, AddRoundKey</td></tr>
+          <tr><td class="done">Done</td><td>Inverse cipher</td></tr>
+          <tr><td class="done">Done</td><td>FIPS 197 Appendix B and Appendix C.1&ndash;C.3 test vectors, encrypt and decrypt, plus 300 random round trips</td></tr>
+          <tr><td class="todo-state">Not yet</td><td>Full constant-time verification of the cipher (no table lookups in the cipher path; the round functions have not been audited branch by branch, and no statistical timing test such as dudect has been run)</td></tr>
         </tbody>
       </table>
 

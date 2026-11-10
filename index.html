@@ -12,7 +12,7 @@
   <meta name="theme-color" content="#111416" media="(prefers-color-scheme: dark)">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Julian Vazquez · Cryptography and Security">
-  <meta property="og:description" content="Applied Mathematics, UC San Diego. AES-128 from FIPS 197 in constant-time C, Cryptopals in C++. U.S. citizen, available for internships from June 14, 2027.">
+  <meta property="og:description" content="Applied Mathematics, UC San Diego. AES (128/192/256) from FIPS 197 in constant-time C, Cryptopals in C++. U.S. citizen, available for internships from June 14, 2027.">
   <meta property="og:url" content="https://julian-a-vazquez.github.io/">
   <!-- TODO (optional): add a 1200x630 preview image at assets/og-image.png and uncomment:
   <meta property="og:image" content="https://julian-a-vazquez.github.io/assets/og-image.png"> -->
@@ -75,8 +75,8 @@
 
       <article class="card" aria-labelledby="p-aes">
         <div class="card-head">
-          <h3 id="p-aes">AES-128 from NIST FIPS 197</h3>
-          <span class="tag progress">In progress</span>
+          <h3 id="p-aes">AES from NIST FIPS 197</h3>
+          <span class="tag">Complete</span>
         </div>
         <p class="stack">C · gcc · AddressSanitizer · UBSan</p>
         <ul class="bullets">
@@ -88,8 +88,9 @@
             gcc <code>-O0</code>/<code>-O2</code> assembly.</li>
           <li>Test harness with AddressSanitizer and UBSan; builds with
             <code>-Wall</code> <code>-Wextra</code> <code>-Wpedantic</code> <code>-Werror</code>.</li>
-          <li>In progress: key expansion, the round functions, the inverse cipher, and the FIPS 197
-            Appendix C test vectors.</li>
+          <li>Full cipher and inverse cipher for 128-, 192- and 256-bit keys, matching every FIPS 197
+            example: Appendix A key expansion, the Appendix B worked example, and Appendix C.1&ndash;C.3
+            in both directions. No table lookups anywhere in the cipher path.</li>
         </ul>
         <ul class="card-links">
           <li><a href="aes.html">Write-up: constant-time S-box</a></li>
@@ -104,10 +105,10 @@
         </div>
         <p class="stack">C++</p>
         <p>
-          Set 1, challenges 1&ndash;6: hex and base64 encoding, fixed XOR, single-byte XOR key
-          recovery with English letter-frequency scoring, finding the one encrypted line among 327
-          candidates, and breaking repeating-key XOR. The key length comes from the index of
-          coincidence across ciphertext columns, and each column then falls to the single-byte attack.
+          Set 1 complete (challenges 1&ndash;8): hex and base64 encoding, single-byte XOR key
+          recovery with English letter-frequency scoring, breaking repeating-key XOR (key length from
+          the index of coincidence across ciphertext columns), AES-128-ECB decryption, and detecting
+          ECB by its repeated 16-byte blocks. Working toward Set 8; target completion June 2027.
         </p>
         <ul class="card-links">
           <li><a href="https://github.com/Julian-A-Vazquez/cryptopals-cryptographic-challenges#readme">Current status (README)</a></li>
